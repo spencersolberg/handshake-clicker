@@ -131,7 +131,6 @@
     }
 
     // what tier? (determines SI symbol)
-
     let suffixes = [
       "",
       "k",
@@ -257,12 +256,33 @@
   setInterval(save, 60 * 1000);
 
   load();
+
+  let icann;
+
+  const checkIcann = async () => {
+    if (!browser) return false;
+
+    const res = await fetch("/icann.txt");
+    const txt = await res.text();
+    const tlds = txt.toLowerCase();
+    const len = tlds.length;
+
+    const subs = location.host.split(".");
+    const tld = subs[subs.length -1];
+    return tlds.includes(tld);
+  }
+
+  checkIcann().then((r) => icann = r);
 </script>
 
 <svelte:head>
   <title>Handshake Clicker</title>
 </svelte:head>
 
+{#if icann}
+<h1 class="mt-8 text-center mx-auto font-black text-5xl max-w-sm">This site is only available for Handshake visitors.</h1>
+<h2 class="text-center font-medium text-3xl mx-auto max-w-sm mt-4">Please visit <a class="underline text-blue-500 hover:text-purple-600" href="https://handshake.incrementalgame">handshake.incrementalgame</a> using <a class="underline text-blue-500 hover:text-purple-600" href="https://impervious.com/fingertip">Fingertip</a>, <a class="underline text-blue-500 hover:text-purple-600" href="https://impervious.com/beacon">Beacon</a> or other Handshake-resolving software.</h2>
+{:else}
 <div class="bg-black text-white sticky top-0 z-50">
   <div class="flex justify-between mx-auto max-w-sm px-2 font-mono font-bold">
     <p on:click={save} class="cursor-pointer hover:underline">Save</p>
@@ -279,6 +299,7 @@
   <h2 class="text-xl mx-auto mt-2 font-mono">
     {format(perSecond)} HNS/s
   </h2>
+  <!-- <h2>{icann}</h2> -->
 
   <div on:click={click} on:mousedown={clickDown}>
     <img
@@ -374,3 +395,4 @@
     href="https://spencersolberg">spencersolberg/</a
   >
 </div>
+{/if}
