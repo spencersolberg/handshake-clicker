@@ -248,8 +248,9 @@
     if (!browser) return;
     if (window.confirm("Are you sure you want to delete your save? You will lose all of your progress!")) {
       localStorage.removeItem("save");
+      location.reload();
     }
-    location.reload();
+    
   }
 
   setInterval(millisecond, 1);
@@ -356,7 +357,7 @@
   {/each}
   <!-- <h2 class="text-3xl mb-2">Upgrades</h2> -->
   <h1 class="text-5xl font-black mb-2">Settings</h1>
-  <div class="flex mx-auto mb-2">
+  <div class="flex mx-auto mb-2 items-baseline">
     <input class="pr-1" type="checkbox" name="Audio" id="audio" bind:checked={audio} />
     <label class="text-lg font-mono pl-2" for="audio">Audio</label>
   </div>
