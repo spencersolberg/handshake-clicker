@@ -188,7 +188,7 @@
 
   const serializeSave = () => {
     let data = {
-      balance,
+      balance: Number(balance.toFixed(2)),
       clickMultiplier,
       perSecond,
       rateMultiplier,
@@ -251,15 +251,15 @@
 </svelte:head>
 
 <div class="bg-black text-white sticky top-0 z-50">
-  <div class="flex justify-between mx-auto max-w-sm px-2 font-mono">
-    <p on:click={save} class="cursor-pointer">Save</p>
-    <p on:click={exportSave} class="cursor-pointer">Export</p>
-    <p on:click={importSave} class="cursor-pointer">Import</p>
+  <div class="flex justify-between mx-auto max-w-sm px-2 font-mono font-bold">
+    <p on:click={save} class="cursor-pointer hover:underline">Save</p>
+    <p on:click={exportSave} class="cursor-pointer hover:underline">Export</p>
+    <p on:click={importSave} class="cursor-pointer hover:underline">Import</p>
     <p class="text-right">{formatSmall(balance)} HNS</p>
   </div>
 </div>
 <div class="flex flex-col mx-auto max-w-sm p-2 bg-white">
-  <h1 class="text-4xl mx-auto mt-8 font-medium font-mono text-center">
+  <h1 class="text-4xl mx-auto mt-8 font-bold font-mono text-center">
     {format(balance)} HNS
   </h1>
   <h2 class="text-xl mx-auto mt-2 font-mono">
@@ -279,8 +279,8 @@
   <!-- <h1 on:click={exportSave}>Export Save</h1> -->
   <!-- <h1 on:click={importSave}>Import Save</h1> -->
 
-  <h1 class="text-5xl mb-2 font-medium">Shop</h1>
-  <h2 class="text-3xl mb-2">Buildings</h2>
+  <h1 class="text-5xl mb-2 font-black">Shop</h1>
+  <h2 class="text-3xl mb-2 font-bold">Buildings</h2>
   {#each buildings as building}
     {#if building.id == 0 || ownedBuildings[building.id - 1] || ownedBuildings[building.id - 1] === 0}
       <div class="border-2 border-black rounded-md mb-4">
@@ -343,8 +343,8 @@
     {/if}
   {/each}
   <!-- <h2 class="text-3xl mb-2">Upgrades</h2> -->
-  <h1 class="text-5xl mb-2">Tip</h1>
+  <h1 class="text-5xl font-black mb-2">Tip</h1>
   <img src="/qr.svg" alt="">
-  <p class="text-sm font-mono text-center mb-2">hs1qjs9e244ur25u0kvc362kjgegvlfcpt90a6z5d8</p>
-  <a target="_blank" class="text-sm font-mono text-center underline text-blue-500 hover:text-purple-600" href="https://spencersolberg">spencersolberg/</a>
+  <p class="text-xs font-mono text-center mb-2">hs1qjs9e244ur25u0kvc362kjgegvlfcpt90a6z5d8</p>
+  <a target="_blank" class="text-lg font-mono text-center underline text-blue-500 hover:text-purple-600" href="https://spencersolberg">spencersolberg/</a>
 </div>

@@ -1,3 +1,44 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+@layer base {
+    @font-face {
+        font-family: "Paysage";
+        src: url("/fonts/Paysage-Regular.woff") format("woff"),
+            url("/fonts/Paysage-Regular.woff2") format("woff2");
+        font-style: normal;
+        font-weight: 400;
+    }
+
+    @font-face {
+        font-family: "Paysage";
+        src: url("/fonts/Paysage-Medium.woff") format("woff"),
+            url("/fonts/Paysage-Medium.woff2") format("woff2");
+        font-style: normal;
+        font-weight: 500;
+    }
+
+    @font-face {
+        font-family: "Paysage";
+        src: url("/fonts/Paysage-Bold.woff") format("woff"),
+            url("/fonts/Paysage-Bold.woff2") format("woff2");
+        font-style: normal;
+        font-weight: 700;
+    }
+
+    @font-face {
+        font-family: "Paysage";
+        src: url("/fonts/Paysage-Black.woff") format("woff"),
+            url("/fonts/Paysage-Black.woff2") format("woff2");
+        font-style: normal;
+        font-weight: 900;
+    }
+
+    @font-face {
+        font-family: "Noto Sans Mono";
+        src: url("/fonts/notosansmono-variablefont-wdth-wght.woff") format("woff"),
+            url("/fonts/notosansmono-variablefont-wdth-wght.woff2") format("woff2");
+        font-style: monospace;
+    }
+}
