@@ -6,6 +6,8 @@
   let perSecond = 0;
   let rateMultiplier = 1;
   let ownedBuildings = {};
+  let audio = true;
+  let walletName = "Namer"
 
   const buildings = [
     {
@@ -78,6 +80,10 @@
     balance += 1 * clickMultiplier;
   };
 
+  const clickDown = () => {
+    audio && new Audio("/pop.wav").play();
+  };
+
   const millisecond = () => {
     balance += perSecond * rateMultiplier * 0.001;
   };
@@ -97,6 +103,7 @@
     }
 
     perSecond += building.rate;
+    audio && new Audio("/chaching.wav").play();
   };
 
   const sell = (building) => {
@@ -111,6 +118,8 @@
     ownedBuildings[building.id] -= 1;
 
     perSecond -= building.rate;
+
+    audio && new Audio("/pop2.wav").play();
   };
 
   const format = (number) => {
@@ -150,7 +159,6 @@
   };
 
   const formatSmall = (number) => {
-
     if (number < 1000) {
       return number.toLocaleString(undefined, {
         minimumFractionDigits: 2,
@@ -160,15 +168,7 @@
 
     // what tier? (determines SI symbol)
 
-    let suffixes = [
-      "",
-      "K",
-      "M",
-      "B",
-      "t",
-      "q",
-      "Q",
-    ];
+    let suffixes = ["", "K", "M", "B", "t", "q", "Q"];
 
     let tier = (Math.log10(Math.abs(number)) / 3) | 0;
 
@@ -193,6 +193,8 @@
       perSecond,
       rateMultiplier,
       ownedBuildings,
+      audio,
+      walletName
     };
 
     let base64 = btoa(JSON.stringify(data));
@@ -221,13 +223,15 @@
     perSecond = save.perSecond;
     rateMultiplier = save.rateMultiplier;
     ownedBuildings = save.ownedBuildings;
+    audio = save.audio ?? true;
+    walletName = save.walletName ?? "Namer";
   };
 
-    const importSave = () => {
-        if (!browser) return;
-        let saveString = window.prompt("Paste your save string");
-        loadSave(saveString);
-    }
+  const importSave = () => {
+    if (!browser) return;
+    let saveString = window.prompt("Paste your save string");
+    loadSave(saveString);
+  };
 
   const save = () => {
     if (!browser) return;
@@ -240,6 +244,14 @@
     if (saveString) loadSave(saveString);
   };
 
+  const deleteSave = () => {
+    if (!browser) return;
+    if (window.confirm("Are you sure you want to delete your save? You will lose all of your progress!")) {
+      localStorage.removeItem("save");
+    }
+    location.reload();
+  }
+
   setInterval(millisecond, 1);
   setInterval(save, 60 * 1000);
 
@@ -247,7 +259,7 @@
 </script>
 
 <svelte:head>
-    <title>Handshake Clicker</title>
+  <title>Handshake Clicker</title>
 </svelte:head>
 
 <div class="bg-black text-white sticky top-0 z-50">
@@ -259,14 +271,15 @@
   </div>
 </div>
 <div class="flex flex-col mx-auto max-w-sm p-2 bg-white">
-  <h1 class="text-4xl mx-auto mt-8 font-bold font-mono text-center">
+  <h1 class="text-5xl text-center font-black mx-auto mt-8"><span spellcheck="false" autocorrect="off" contenteditable bind:textContent={walletName}></span>'s Wallet</h1>
+  <h1 class="text-4xl mx-auto mt-4 font-bold font-mono text-center">
     {format(balance)} HNS
   </h1>
   <h2 class="text-xl mx-auto mt-2 font-mono">
     {format(perSecond)} HNS/s
   </h2>
 
-  <div on:click={click}>
+  <div on:click={click} on:mousedown={clickDown}>
     <img
       src="hns.svg"
       alt="HNS Icon"
@@ -311,14 +324,13 @@
             }}
             class="bg-green-400 w-1/2 mr-1 p-2 border-2 border-black rounded-md transition-transform transform transform-gpu motion-safe:hover:scale-105 motion-safe:active:scale-95 cursor-pointer"
           >
-            <h1 class="font-medium text-lg">
-              Buy</h1><h1 class="font-mono"
-                >{format(
-                  building.basePrice *
-                    Math.pow(1.15, ownedBuildings[building.id] ?? 0)
-                )} HNS</h1
-              >
-            
+            <h1 class="font-medium text-lg">Buy</h1>
+            <h1 class="font-mono">
+              {format(
+                building.basePrice *
+                  Math.pow(1.15, ownedBuildings[building.id] ?? 0)
+              )} HNS
+            </h1>
           </div>
 
           <div
@@ -327,24 +339,37 @@
             }}
             class="bg-red-400 w-1/2 ml-1 p-2 border-2 border-black rounded-md transition-transform transform transform-gpu motion-safe:hover:scale-105 motion-safe:active:scale-95 cursor-pointer"
           >
-            <h1 class="font-medium text-lg">
-              Sell</h1><h1 class="font-mono"
-                >{ownedBuildings[building.id]
-                  ? format(
-                      (building.basePrice *
-                        Math.pow(1.15, ownedBuildings[building.id] ?? 0)) /
-                        4
-                    ) + " HNS"
-                  : "N/A"}</h1
-              >
+            <h1 class="font-medium text-lg">Sell</h1>
+            <h1 class="font-mono">
+              {ownedBuildings[building.id]
+                ? format(
+                    (building.basePrice *
+                      Math.pow(1.15, ownedBuildings[building.id] ?? 0)) /
+                      4
+                  ) + " HNS"
+                : "N/A"}
+            </h1>
           </div>
         </div>
       </div>
     {/if}
   {/each}
   <!-- <h2 class="text-3xl mb-2">Upgrades</h2> -->
+  <h1 class="text-5xl font-black mb-2">Settings</h1>
+  <div class="flex mx-auto mb-2">
+    <input class="pr-1" type="checkbox" name="Audio" id="audio" bind:checked={audio} />
+    <label class="text-lg font-mono pl-2" for="audio">Audio</label>
+  </div>
+  <p on:click={deleteSave} class=" text-lg text-center mb-2 cursor-pointer hover:text-red-600 text-red-400 hover:underline">Delete Save</p>
+
   <h1 class="text-5xl font-black mb-2">Tip</h1>
-  <img src="/qr.svg" alt="">
-  <p class="text-xs font-mono text-center mb-2">hs1qjs9e244ur25u0kvc362kjgegvlfcpt90a6z5d8</p>
-  <a target="_blank" class="text-lg font-mono text-center underline text-blue-500 hover:text-purple-600" href="https://spencersolberg">spencersolberg/</a>
+  <img src="/qr.svg" alt="" />
+  <p class="text-xs font-mono text-center mb-2">
+    hs1qjs9e244ur25u0kvc362kjgegvlfcpt90a6z5d8
+  </p>
+  <a
+    target="_blank"
+    class="text-lg font-mono text-center underline text-blue-500 hover:text-purple-600"
+    href="https://spencersolberg">spencersolberg/</a
+  >
 </div>
