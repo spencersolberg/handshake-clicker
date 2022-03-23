@@ -1,13 +1,20 @@
 <script>
   import { browser } from "$app/env";
-
+  import {Howl, Howler} from 'howler';
   let balance = 0;
   let clickMultiplier = 1;
-  let perSecond = 0;
+  let hps = 0;
   let rateMultiplier = 1;
   let ownedBuildings = {};
   let audio = true;
-  let walletName = "Namer"
+  let walletName = "Namer";
+
+  const sounds = {
+    pop: new Howl({src: "/pop.wav"}),
+    pop2: new Howl({src: "/pop2.wav"}),
+    chaching: new Howl({src: "/chaching.wav"}),
+    achievement: new Howl({src: "/achievement.wav"})
+  }
 
   const buildings = [
     {
@@ -81,11 +88,12 @@
   };
 
   const clickDown = () => {
-    audio && new Audio("/pop.wav").play();
+    // @ts-ignore
+    audio && sounds.pop.play();
   };
 
-  const millisecond = () => {
-    balance += perSecond * rateMultiplier * 0.001;
+  const tenMilliseconds = () => {
+    balance += (hps * rateMultiplier) / 100;
   };
 
   const buy = (building) => {
@@ -102,8 +110,9 @@
       ownedBuildings[building.id] += 1;
     }
 
-    perSecond += building.rate;
-    audio && new Audio("/chaching.wav").play();
+    hps = perSecond();
+    // @ts-ignore
+    audio && sounds.chaching.play();
   };
 
   const sell = (building) => {
@@ -117,9 +126,9 @@
 
     ownedBuildings[building.id] -= 1;
 
-    perSecond -= building.rate;
-
-    audio && new Audio("/pop2.wav").play();
+    hps = perSecond();
+    // @ts-ignore
+    audio && sounds.pop2.play();
   };
 
   const format = (number) => {
@@ -130,7 +139,6 @@
       });
     }
 
-    // what tier? (determines SI symbol)
     let suffixes = [
       "",
       "k",
@@ -143,17 +151,13 @@
 
     let tier = (Math.log10(Math.abs(number)) / 3) | 0;
 
-    // if zero, we don't need a suffix
     if (tier == 0) return number;
 
-    // get suffix and determine scale
     let suffix = suffixes[tier];
     let scale = Math.pow(10, tier * 3);
 
-    // scale the number
     let scaled = number / scale;
 
-    // format number and add suffix
     return scaled.toFixed(3) + suffix;
   };
 
@@ -165,23 +169,18 @@
       });
     }
 
-    // what tier? (determines SI symbol)
 
     let suffixes = ["", "K", "M", "B", "t", "q", "Q"];
 
     let tier = (Math.log10(Math.abs(number)) / 3) | 0;
 
-    // if zero, we don't need a suffix
     if (tier == 0) return number;
 
-    // get suffix and determine scale
     let suffix = suffixes[tier];
     let scale = Math.pow(10, tier * 3);
 
-    // scale the number
     let scaled = number / scale;
 
-    // format number and add suffix
     return scaled.toFixed(2) + suffix;
   };
 
@@ -219,11 +218,11 @@
     let save = JSON.parse(atob(saveString));
     balance = save.balance;
     clickMultiplier = save.clickMultiplier;
-    perSecond = save.perSecond;
     rateMultiplier = save.rateMultiplier;
     ownedBuildings = save.ownedBuildings;
     audio = save.audio ?? true;
     walletName = save.walletName ?? "Namer";
+    hps = perSecond();
   };
 
   const importSave = () => {
@@ -252,7 +251,16 @@
     
   }
 
-  setInterval(millisecond, 1);
+  const perSecond = () => {
+    let hps = 0;
+    for (let building of buildings) {
+      hps += building.rate * (ownedBuildings[building.id] ?? 0);
+    }
+
+    return hps;
+  }
+
+  setInterval(tenMilliseconds, 10);
   setInterval(save, 60 * 1000);
 
   load();
@@ -297,9 +305,8 @@
     {format(balance)} HNS
   </h1>
   <h2 class="text-xl mx-auto mt-2 font-mono">
-    {format(perSecond)} HNS/s
+    {format(hps)} HNS/s
   </h2>
-  <!-- <h2>{icann}</h2> -->
 
   <div on:click={click} on:mousedown={clickDown}>
     <img
@@ -308,11 +315,6 @@
       class="w-60 my-8 mx-auto transition-transform transform transform-gpu motion-safe:hover:scale-105 motion-safe:active:scale-95 cursor-pointer"
     />
   </div>
-
-  <!-- {JSON.stringify(ownedBuildings)} -->
-  <!-- {serializeSave()} -->
-  <!-- <h1 on:click={exportSave}>Export Save</h1> -->
-  <!-- <h1 on:click={importSave}>Import Save</h1> -->
 
   <h1 class="text-5xl mb-2 font-black">Shop</h1>
   <h2 class="text-3xl mb-2 font-bold">Buildings</h2>
@@ -377,7 +379,7 @@
     {/if}
   {/each}
   <!-- <h2 class="text-3xl mb-2">Upgrades</h2> -->
-  <h1 class="text-5xl font-black mb-2">Settings</h1>
+  <h1 class="text-5xl font-black mb-4">Settings</h1>
   <div class="flex mx-auto mb-2 items-baseline">
     <input class="pr-1" type="checkbox" name="Audio" id="audio" bind:checked={audio} />
     <label class="text-lg font-mono pl-2" for="audio">Audio</label>
