@@ -19,6 +19,7 @@
   },
   "type": "module",
   "dependencies": {
-    "howler": "^2.2.3"
+    "howler": "^2.2.3",
+    "party-js": "^2.1.2"
   }
 }

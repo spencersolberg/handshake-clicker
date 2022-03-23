@@ -1,6 +1,8 @@
 <script>
   import { browser } from "$app/env";
   import {Howl, Howler} from 'howler';
+  import party from "party-js";
+
   let balance = 0;
   let clickMultiplier = 1;
   let hps = 0;
@@ -103,6 +105,10 @@
     if (balance < price) return;
 
     balance -= price;
+    
+    if (ownedBuildings[building.id] === undefined) {
+      party.confetti(document.getElementById("building-" + building.id));
+    }
 
     if (!ownedBuildings[building.id]) {
       ownedBuildings[building.id] = 1;
@@ -289,7 +295,7 @@
 
 {#if icann}
 <h1 class="mt-8 text-center mx-auto font-black text-5xl max-w-sm">This site is only available for Handshake visitors.</h1>
-<h2 class="text-center font-medium text-3xl mx-auto max-w-sm mt-4">Please visit <a class="underline text-blue-500 hover:text-purple-600" href="https://handshake.incrementalgame">handshake.incrementalgame</a> using <a class="underline text-blue-500 hover:text-purple-600" href="https://impervious.com/fingertip">Fingertip</a>, <a class="underline text-blue-500 hover:text-purple-600" href="https://impervious.com/beacon">Beacon</a> or other Handshake-resolving software.</h2>
+<h2 class="text-center font-medium text-2xl mx-auto max-w-sm mt-4">Please visit <a class="underline text-blue-500 hover:text-purple-600" href="https://handshake.incrementalgame">handshake.incrementalgame</a> using <a class="underline text-blue-500 hover:text-purple-600" href="https://impervious.com/fingertip">Fingertip</a>, <a class="underline text-blue-500 hover:text-purple-600" href="https://impervious.com/beacon">Beacon</a> or other Handshake-resolving software.</h2>
 {:else}
 <div class="bg-black text-white sticky top-0 z-50">
   <div class="flex justify-between mx-auto max-w-sm px-2 font-mono font-bold">
@@ -311,6 +317,7 @@
   <div on:click={click} on:mousedown={clickDown}>
     <img
       src="hns.svg"
+      id="coin"
       alt="HNS Icon"
       class="w-60 my-8 mx-auto transition-transform transform transform-gpu motion-safe:hover:scale-105 motion-safe:active:scale-95 cursor-pointer"
     />
@@ -346,6 +353,7 @@
             on:click={() => {
               buy(building);
             }}
+            id="building-{building.id}"
             class="bg-green-400 w-1/2 mr-1 p-2 border-2 border-black rounded-md transition-transform transform transform-gpu motion-safe:hover:scale-105 motion-safe:active:scale-95 cursor-pointer"
           >
             <h1 class="font-medium text-lg">Buy</h1>
@@ -384,7 +392,7 @@
     <input class="pr-1" type="checkbox" name="Audio" id="audio" bind:checked={audio} />
     <label class="text-lg font-mono pl-2" for="audio">Audio</label>
   </div>
-  <p on:click={deleteSave} class=" text-lg text-center mb-2 cursor-pointer hover:text-red-600 text-red-400 hover:underline">Delete Save</p>
+  <p on:click={deleteSave} class=" text-xl text-center mb-2 cursor-pointer hover:text-red-600 text-red-400 hover:underline">Delete Save</p>
 
   <h1 class="text-5xl font-black mb-2">Tip</h1>
   <img src="/qr.svg" alt="" />
