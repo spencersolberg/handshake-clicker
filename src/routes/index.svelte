@@ -1,292 +1,165 @@
 <script>
   import { browser } from "$app/env";
-  import {Howl, Howler} from 'howler';
-  import party from "party-js";
-
-  let balance = 0;
-  let clickMultiplier = 1;
-  let hps = 0;
-  let rateMultiplier = 1;
-  let ownedBuildings = {};
-  let audio = true;
-  let walletName = "Namer";
+  import { save } from "../stores/save.js";
+  import { buildings } from "../lib/buildings";
+  import { format, getRate, dateString } from "../lib/functions.js";
+  import TopBar from "../components/TopBar.svelte";
+  import Coin from "../components/Coin.svelte";
+  import Building from "../components/Building.svelte";
+  import { Howl } from "howler";
+  import { onMount } from "svelte";
+  import { tlds } from "../lib/icann.js";
+  import { settings } from "party-js";
 
   const sounds = {
-    pop: new Howl({src: "/pop.wav"}),
-    pop2: new Howl({src: "/pop2.wav"}),
-    chaching: new Howl({src: "/chaching.wav"}),
-    achievement: new Howl({src: "/achievement.wav"})
-  }
-
-  const buildings = [
-    {
-      id: 0,
-      name: "ASIC Miner",
-      emoji: "⛏",
-      desc: "Cheap ASIC Mining computer to mine on the Handshake Blockchain.",
-      basePrice: 75,
-      rate: 0.5,
-    },
-    {
-      id: 1,
-      name: "TLD Staking",
-      emoji: "🏷",
-      desc: "You stake one of your TLDs to allow SLD registrations. Nice!",
-      basePrice: 500,
-      rate: 5,
-    },
-    {
-      id: 2,
-      name: "Sniping Bot",
-      emoji: "🤖",
-      desc: "An bot programmed to automatically mint rare or expiring Handshake names.",
-      basePrice: 5500,
-      rate: 40,
-    },
-    {
-      id: 3,
-      name: "ICANN Proxy",
-      emoji: "✈️",
-      desc: "A proxy website to access Handshake sites through an ICANN domain.",
-      basePrice: 60000,
-      rate: 235,
-    },
-    {
-      id: 4,
-      name: "Nameserver",
-      emoji: "🔌",
-      desc: "An authoritative, public nameserver for setting DNS records for Handshake names.",
-      basePrice: 650000,
-      rate: 1300,
-    },
-    {
-      id: 5,
-      name: "Name Marketplace",
-      emoji: "🛍",
-      desc: "Online service for users to sell and purchase Handshake names.",
-      basePrice: 7000000,
-      rate: 7000,
-    },
-    {
-      id: 6,
-      name: "Registar",
-      emoji: "📒",
-      desc: "Your own Handshake name registrar to lease SLDs to users.",
-      basePrice: 100000000,
-      rate: 39000,
-    },
-    {
-      id: 7,
-      name: "HNS Exchange",
-      emoji: "🏦",
-      desc: "Online platform for exchanging HNS and other currencies.",
-      basePrice: 1650000000,
-      rate: 220000,
-    },
-  ];
-
-  const click = () => {
-    balance += 1 * clickMultiplier;
+    pop: new Howl({ src: "/pop.wav" }),
+    pop2: new Howl({ src: "/pop2.wav" }),
+    chaching: new Howl({ src: "/chaching.wav" }),
+    achievement: new Howl({ src: "/achievement.wav" }),
   };
 
-  const clickDown = () => {
-    // @ts-ignore
-    audio && sounds.pop.play();
-  };
+  let rate = 0;
+  let realRate = 0;
+  let glitched = false;
+  let glitchedCount = 0;
+  let lastBalance = 0;
+  let lastUpdate = new Date();
 
-  const tenMilliseconds = () => {
-    balance += (hps * rateMultiplier) / 100;
-  };
-
-  const buy = (building) => {
-    let price =
-      building.basePrice * Math.pow(1.15, ownedBuildings[building.id] ?? 0);
-
-    if (balance < price) return;
-
-    balance -= price;
-    
-    if (ownedBuildings[building.id] === undefined) {
-      party.confetti(document.getElementById("building-" + building.id));
-    }
-
-    if (!ownedBuildings[building.id]) {
-      ownedBuildings[building.id] = 1;
-    } else {
-      ownedBuildings[building.id] += 1;
-    }
-
-    hps = perSecond();
-    // @ts-ignore
-    audio && sounds.chaching.play();
-  };
-
-  const sell = (building) => {
-    if (!ownedBuildings[building.id]) return;
-
-    let refund =
-      (building.basePrice * Math.pow(1.15, ownedBuildings[building.id] ?? 0)) /
-      4;
-
-    balance += refund;
-
-    ownedBuildings[building.id] -= 1;
-
-    hps = perSecond();
-    // @ts-ignore
-    audio && sounds.pop2.play();
-  };
-
-  const format = (number) => {
-    if (number < 1000000) {
-      return number.toLocaleString(undefined, {
-        minimumFractionDigits: 2,
-        maximumFractionDigits: 2,
-      });
-    }
-
-    let suffixes = [
-      "",
-      "k",
-      " million",
-      " billion",
-      " trillion",
-      " quadrillion",
-      " quintillion",
-    ];
-
-    let tier = (Math.log10(Math.abs(number)) / 3) | 0;
-
-    if (tier == 0) return number;
-
-    let suffix = suffixes[tier];
-    let scale = Math.pow(10, tier * 3);
-
-    let scaled = number / scale;
-
-    return scaled.toFixed(3) + suffix;
-  };
-
-  const formatSmall = (number) => {
-    if (number < 1000) {
-      return number.toLocaleString(undefined, {
-        minimumFractionDigits: 2,
-        maximumFractionDigits: 2,
-      });
-    }
-
-
-    let suffixes = ["", "K", "M", "B", "t", "q", "Q"];
-
-    let tier = (Math.log10(Math.abs(number)) / 3) | 0;
-
-    if (tier == 0) return number;
-
-    let suffix = suffixes[tier];
-    let scale = Math.pow(10, tier * 3);
-
-    let scaled = number / scale;
-
-    return scaled.toFixed(2) + suffix;
-  };
-
-  const serializeSave = () => {
-    let data = {
-      balance: Number(balance.toFixed(2)),
-      clickMultiplier,
-      perSecond,
-      rateMultiplier,
-      ownedBuildings,
-      audio,
-      walletName
+  if (browser && !localStorage.getItem("save")) {
+    let newSave = {
+      balance: Number(0),
+      ownedBuildings: {},
+      settings: {
+        audio: true,
+        walletName: "Namer",
+        autoSave: true,
+        debug: false,
+      },
+      stats: {
+        hnsAllTime: 0,
+        hnsClicked: 0,
+        timesClicked: 0,
+        buildingsPurchased: 0,
+        buildingsSold: 0,
+        runStarted: new Date(),
+      },
+      lastSave: new Date(),
     };
 
-    let base64 = btoa(JSON.stringify(data));
+    let string = JSON.stringify(newSave);
 
-    return base64;
-  };
+    localStorage.setItem("save", string);
+  }
+  $: {
+    rate = getRate($save);
+    $save.balance = Number($save.balance.toFixed(4));
+    $save.stats.hnsAllTime = Number($save.stats.hnsAllTime.toFixed(4));
+  }
 
-  const exportSave = () => {
-    let save = serializeSave();
-
-    let c = document.createElement("a");
-    c.download = "handshake-incremental-game-save.txt";
-
-    let t = new Blob([save], {
-      type: "text/plain",
-    });
-
-    c.href = window.URL.createObjectURL(t);
-    c.click();
-  };
-
-  const loadSave = (saveString) => {
-    let save = JSON.parse(atob(saveString));
-    balance = save.balance;
-    clickMultiplier = save.clickMultiplier;
-    rateMultiplier = save.rateMultiplier;
-    ownedBuildings = save.ownedBuildings;
-    audio = save.audio ?? true;
-    walletName = save.walletName ?? "Namer";
-    hps = perSecond();
-  };
-
-  const importSave = () => {
-    if (!browser) return;
-    let saveString = window.prompt("Paste your save string");
-    loadSave(saveString);
-  };
-
-  const save = () => {
-    if (!browser) return;
-    localStorage.setItem("save", serializeSave());
+  const tenMilliseconds = () => {
+    let now = new Date();
+    let elapsed = now.getTime() - lastUpdate.getTime();
+    $save.balance += (rate / 1000) * elapsed;
+    $save.stats.hnsAllTime += (rate / 1000) * elapsed;
+    lastUpdate = now;
   };
 
   const load = () => {
     if (!browser) return;
-    let saveString = localStorage.getItem("save");
-    if (saveString) loadSave(saveString);
+    let string = localStorage.getItem("save");
+    if (!string.includes("{")) {
+      let oldSave = JSON.parse(atob(string));
+      $save = {
+        balance: Number(oldSave.balance),
+        ownedBuildings: oldSave.ownedBuildings,
+        settings: {
+          audio: oldSave.audio,
+          walletName: oldSave.walletName,
+          autoSave: true,
+          debug: false,
+        },
+        stats: {
+          hnsAllTime: 0,
+          hnsClicked: 0,
+          timesClicked: 0,
+          buildingsPurchased: 0,
+          buildingsSold: 0,
+          runStarted: new Date(),
+        },
+        lastSave: new Date(),
+      };
+    } else {
+      $save = JSON.parse(string);
+    }
+  };
+
+  // const serializeSave = () => {
+  //   let data = {
+  //     balance: Number(balance.toFixed(2)),
+  //     clickMultiplier,
+  //     perSecond,
+  //     rateMultiplier,
+  //     ownedBuildings,
+  //     audio,
+  //     walletName
+  //   };
+
+  //   let base64 = btoa(JSON.stringify(data));
+
+  //   return base64;
+  // };
+
+  const downloadSave = () => {
+    let string = JSON.stringify($save);
+    let base64 = btoa(string);
+
+    let a = document.createElement("a");
+    a.download = "handshake-incremental-game-save.txt";
+
+    let t = new Blob([base64], {
+      type: "text/plain",
+    });
+
+    a.href = window.URL.createObjectURL(t);
+    a.click();
   };
 
   const deleteSave = () => {
     if (!browser) return;
-    if (window.confirm("Are you sure you want to delete your save? You will lose all of your progress!")) {
+    if (
+      window.confirm(
+        "Are you sure you want to delete your save? You will lose all of your progress!"
+      )
+    ) {
       localStorage.removeItem("save");
       location.reload();
     }
-    
-  }
-
-  const perSecond = () => {
-    let hps = 0;
-    for (let building of buildings) {
-      hps += building.rate * (ownedBuildings[building.id] ?? 0);
-    }
-
-    return hps;
-  }
+  };
 
   setInterval(tenMilliseconds, 10);
-  setInterval(save, 60 * 1000);
+  setInterval(() => {
+    realRate = $save.balance - lastBalance;
+    if (realRate / rate > 1.2) {
+      glitchedCount++;
+    } else {
+      glitchedCount = 0;
+    }
+
+    if (glitchedCount > 10) glitched = true;
+
+    lastBalance = $save.balance;
+  }, 1000);
 
   load();
 
-  let icann;
-
-  const checkIcann = async () => {
-    if (!browser) return false;
-
-    const res = await fetch("/icann.txt");
-    const txt = await res.text();
-    const tlds = txt.toLowerCase();
-    const len = tlds.length;
-
-    const subs = location.host.split(".");
-    const tld = subs[subs.length -1];
-    return tlds.includes(tld);
+  let icann = false;
+  let tld;
+  if (browser) {
+    let subs = location.host.split(".");
+    tld = subs[subs.length - 1];
+    console.log(tld);
+    icann = tlds.includes(tld.toUpperCase());
   }
-
-  checkIcann().then((r) => icann = r);
 </script>
 
 <svelte:head>
@@ -294,115 +167,195 @@
 </svelte:head>
 
 {#if icann}
-<h1 class="mt-8 text-center mx-auto font-black text-5xl max-w-sm">This site is only available for Handshake visitors.</h1>
-<h2 class="text-center font-medium text-2xl mx-auto max-w-sm mt-4">Please visit <a class="underline text-blue-500 hover:text-purple-600" href="https://handshake.incrementalgame">handshake.incrementalgame</a> using <a class="underline text-blue-500 hover:text-purple-600" href="https://impervious.com/fingertip">Fingertip</a>, <a class="underline text-blue-500 hover:text-purple-600" href="https://impervious.com/beacon">Beacon</a> or other Handshake-resolving software.</h2>
-{:else}
-<div class="bg-black text-white sticky top-0 z-50">
-  <div class="flex justify-between mx-auto max-w-sm px-2 font-mono font-bold">
-    <p on:click={save} class="cursor-pointer hover:underline">Save</p>
-    <p on:click={exportSave} class="cursor-pointer hover:underline">Export</p>
-    <p on:click={importSave} class="cursor-pointer hover:underline">Import</p>
-    <p class="text-right">{formatSmall(balance)} HNS</p>
-  </div>
-</div>
-<div class="flex flex-col mx-auto max-w-sm p-2 bg-white">
-  <h1 class="text-5xl text-center font-black mx-auto mt-8"><span spellcheck="false" autocorrect="off" contenteditable bind:textContent={walletName}></span>'s Wallet</h1>
-  <h1 class="text-4xl mx-auto mt-4 font-bold font-mono text-center">
-    {format(balance)} HNS
+  <h1 class="mt-8 text-center mx-auto font-black text-5xl max-w-sm">
+    This site is only available for Handshake visitors.
   </h1>
-  <h2 class="text-xl mx-auto mt-2 font-mono">
-    {format(hps)} HNS/s
+  <h2 class="text-center font-medium text-2xl mx-auto max-w-sm mt-4">
+    Please visit <a
+      class="underline text-blue-500 hover:text-purple-600"
+      href="https://handshake.incrementalgame">handshake.incrementalgame</a
+    >
+    using
+    <a
+      class="underline text-blue-500 hover:text-purple-600"
+      href="https://impervious.com/fingertip">Fingertip</a
+    >,
+    <a
+      class="underline text-blue-500 hover:text-purple-600"
+      href="https://impervious.com/beacon">Beacon</a
+    > or other Handshake-resolving software.
   </h2>
-
-  <div on:click={click} on:mousedown={clickDown}>
-    <img
-      src="hns.svg"
-      id="coin"
-      alt="HNS Icon"
-      class="w-60 my-8 mx-auto transition-transform transform transform-gpu motion-safe:hover:scale-105 motion-safe:active:scale-95 cursor-pointer"
-    />
-  </div>
-
-  <h1 class="text-5xl mb-2 font-black">Shop</h1>
-  <h2 class="text-3xl mb-2 font-bold">Buildings</h2>
-  {#each buildings as building}
-    {#if building.id == 0 || ownedBuildings[building.id - 1] || ownedBuildings[building.id - 1] === 0}
-      <div class="border-2 border-black rounded-md mb-4">
-        <div class="flex px-2 pt-2">
-          <h1 class="text-5xl pr-2">{building.emoji}</h1>
-          <div class="flex flex-col">
-            <h1 class="text-xl font-medium">{building.name}</h1>
-            <div class="flex justify-between items-baseline">
-              <h1 class="text-gray-500 pr-2">
-                Rate: <span class="font-mono"
-                  >{format(building.rate)} HNS/s</span
-                >,
-              </h1>
-              <h1 class="text-gray-500">
-                Owned: <span class="font-mono"
-                  >{(ownedBuildings[building.id] ?? 0).toLocaleString()}</span
-                >
-              </h1>
-            </div>
-          </div>
-        </div>
-
-        <p class="px-2 py-2 text-sm">{building.desc}</p>
-        <div class="flex px-2 pb-2 justify-between">
-          <div
-            on:click={() => {
-              buy(building);
-            }}
-            id="building-{building.id}"
-            class="bg-green-400 w-1/2 mr-1 p-2 border-2 border-black rounded-md transition-transform transform transform-gpu motion-safe:hover:scale-105 motion-safe:active:scale-95 cursor-pointer"
-          >
-            <h1 class="font-medium text-lg">Buy</h1>
-            <h1 class="font-mono">
-              {format(
-                building.basePrice *
-                  Math.pow(1.15, ownedBuildings[building.id] ?? 0)
-              )} HNS
-            </h1>
-          </div>
-
-          <div
-            on:click={() => {
-              sell(building);
-            }}
-            class="bg-red-400 w-1/2 ml-1 p-2 border-2 border-black rounded-md transition-transform transform transform-gpu motion-safe:hover:scale-105 motion-safe:active:scale-95 cursor-pointer"
-          >
-            <h1 class="font-medium text-lg">Sell</h1>
-            <h1 class="font-mono">
-              {ownedBuildings[building.id]
-                ? format(
-                    (building.basePrice *
-                      Math.pow(1.15, ownedBuildings[building.id] ?? 0)) /
-                      4
-                  ) + " HNS"
-                : "N/A"}
-            </h1>
-          </div>
-        </div>
-      </div>
+{:else}
+  <TopBar />
+  <div class="flex flex-col mx-auto max-w-sm p-2 bg-white">
+    <h1 class="text-5xl text-center font-black mx-auto mt-8">
+      <span
+        spellcheck="false"
+        autocorrect="off"
+        contenteditable
+        bind:textContent={$save.settings.walletName}
+      />'s Wallet
+    </h1>
+    <h1 class="text-4xl mx-auto mt-4 font-bold font-mono text-center">
+      {format($save.balance)} HNS
+    </h1>
+    <h2 class="text-xl mx-auto mt-2 font-mono">
+      {format(rate)} HNS/s
+    </h2>
+    {#if $save.settings.debug}
+      <h2 class="text-sm mx-auto mt-2 font-mono">
+        Actual: {format(realRate)} HNS/s
+      </h2>
     {/if}
-  {/each}
-  <!-- <h2 class="text-3xl mb-2">Upgrades</h2> -->
-  <h1 class="text-5xl font-black mb-4">Settings</h1>
-  <div class="flex mx-auto mb-2 items-baseline">
-    <input class="pr-1" type="checkbox" name="Audio" id="audio" bind:checked={audio} />
-    <label class="text-lg font-mono pl-2" for="audio">Audio</label>
-  </div>
-  <p on:click={deleteSave} class=" text-xl text-center mb-2 cursor-pointer hover:text-red-600 text-red-400 hover:underline">Delete Save</p>
+    {#if glitched && $save.settings.debug}
+      <h2
+        on:click={() => browser && location.reload()}
+        class="text-sm mx-auto mt-2 font-mono cursor-pointer text-blue-500 hover:text-purple-600 hover:underline"
+      >
+        Refresh...
+      </h2>
+    {/if}
+    <Coin
+      on:mousedown={() =>
+        $save.settings.audio &&
+        sounds.pop
+          // @ts-ignore
+          .play()}
+    />
 
-  <h1 class="text-5xl font-black mb-2">Tip</h1>
-  <img src="/qr.svg" alt="" />
-  <p class="text-xs font-mono text-center mb-2">
-    hs1qjs9e244ur25u0kvc362kjgegvlfcpt90a6z5d8
-  </p>
-  <a
-    target="_blank"
-    class="text-lg font-mono text-center underline text-blue-500 hover:text-purple-600"
-    href="https://spencersolberg">spencersolberg/</a
-  >
-</div>
+    {#if $save.settings.debug}
+      <h1 class="text-5xl mb-2 font-black">Debug</h1>
+      <pre
+        class="font-mono mx-auto overflow-x-scroll max-w-sm bg-gray-800 rounded-md text-white p-2">{JSON.stringify(
+          $save,
+          undefined,
+          4
+        )}</pre>
+    {/if}
+
+    <h1 class="text-5xl mb-2 font-black">Shop</h1>
+    <h2 class="text-3xl mb-2 font-bold">Buildings</h2>
+    {#each buildings as building}
+      {#if building.id == 0 || $save.ownedBuildings[building.id - 1] || $save.ownedBuildings[building.id - 1] === 0}
+        <Building
+          {building}
+          on:buy={() =>
+            $save.settings.audio &&
+            sounds.chaching
+              // @ts-ignore
+              .play()}
+          on:sell={() =>
+            $save.settings.audio &&
+            sounds.pop2
+              // @ts-ignore
+              .play()}
+        />
+      {/if}
+    {/each}
+    <!-- <h2 class="text-3xl mb-2">Upgrades</h2> -->
+    <h1 class="text-5xl font-black mb-4">Stats</h1>
+    <ul class="mb-2">
+      <li class="text-lg">
+        HNS Generated (All-Time): <span class="font-mono"
+          >{format($save.stats.hnsAllTime)} HNS</span
+        >
+      </li>
+      <li class="text-lg">
+        Coin Clicks: <span class="font-mono"
+          >{format($save.stats.timesClicked, 0)}</span
+        >
+      </li>
+      <li class="text-lg">
+        Buildings Discovered: <span class="font-mono">
+          {Object.keys($save.ownedBuildings).length ==
+          Object.keys(buildings).length
+            ? Object.keys($save.ownedBuildings).length
+            : Object.keys($save.ownedBuildings).length + 1}/{Object.keys(
+            buildings
+          ).length}
+        </span>
+      </li>
+      <li class="text-lg">
+        Buildings Purchased: <span class="font-mono"
+          >{format($save.stats.buildingsPurchased, 0)}</span
+        >
+      </li>
+      <li class="text-lg">
+        Buildings Sold: <span class="font-mono"
+          >{format($save.stats.buildingsSold, 0)}</span
+        >
+      </li>
+      <li class="text-lg">
+        Run Started: <span class="font-mono"
+          >{dateString($save.stats.runStarted)}</span
+        >
+      </li>
+      <li class="text-lg">
+        Last Saved: <span class="font-mono">{dateString($save.lastSave)}</span>
+      </li>
+    </ul>
+    <h1 class="text-5xl font-black mb-4">Settings</h1>
+    <div class="flex-col mb-2 items-base">
+      <p class="text-lg font-mono pr-2">Your Name:</p>
+      <p
+        class="border-2 text-lg border-black rounded-md p-1 overflow-x-scroll max-w-sm"
+        contenteditable
+        bind:textContent={$save.settings.walletName}
+      />
+    </div>
+    <div class="flex mb-2 items-baseline">
+      <input
+        class="pr-1"
+        type="checkbox"
+        name="AutoSave"
+        id="autosave"
+        bind:checked={$save.settings.autoSave}
+      />
+      <label class="text-lg font-mono pl-2" for="audio">AutoSave</label>
+    </div>
+    <div class="flex mb-2 items-baseline">
+      <input
+        class="pr-1"
+        type="checkbox"
+        name="Audio"
+        id="audio"
+        bind:checked={$save.settings.audio}
+      />
+      <label class="text-lg font-mono pl-2" for="audio">Sound</label>
+    </div>
+    <div class="flex mb-2 items-baseline">
+      <input
+        class="pr-1"
+        type="checkbox"
+        name="Debug"
+        id="debug"
+        bind:checked={$save.settings.debug}
+      />
+      <label class="text-lg font-mono pl-2" for="audio">Debug Mode</label>
+    </div>
+
+    <p
+      on:click={downloadSave}
+      class="text-xl mb-2 cursor-pointer hover:text-purple-600 text-blue-500 hover:underline"
+    >
+      Download Save
+    </p>
+    <p
+      on:click={deleteSave}
+      class="text-xl mb-2 cursor-pointer hover:text-red-600 text-red-400 hover:underline"
+    >
+      Delete Save
+    </p>
+
+    <h1 class="text-5xl font-black mb-2">Tip</h1>
+    <img src="/qr.svg" alt="" />
+    <p class="text-xs font-mono text-center mb-2">
+      hs1qjs9e244ur25u0kvc362kjgegvlfcpt90a6z5d8
+    </p>
+    <a
+      target="_blank"
+      class="text-lg font-mono text-center underline text-blue-500 hover:text-purple-600"
+      href="https://spencersolberg">spencersolberg/</a
+    >
+  </div>
 {/if}
