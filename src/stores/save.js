@@ -3,6 +3,7 @@ import { writable } from 'svelte/store';
 export const save = writable({
     balance: Number(0),
     ownedBuildings: {},
+    ownedUpgrades: [],
     settings: {
         audio: true,
         walletName: "Namer",

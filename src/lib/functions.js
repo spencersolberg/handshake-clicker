@@ -86,3 +86,22 @@ export const dateString = (date) => {
 
   return getRelativeTime(date) + ", " + date.toLocaleDateString();
 };
+
+export const checkEligibility = (save, upgrades) => {
+  let eligible = [];
+  for (let upgrade of upgrades) {
+    if (!save.ownedUpgrades.includes(upgrade.id)) {
+      if (upgrade.requirement.type == "clicks") {
+        if (save.stats.timesClicked >= upgrade.requirement.value) {
+          eligible.push(upgrade);
+        }
+      }
+      if (upgrade.requirement.type == "clicked") {
+        if (save.stats.hnsClicked >= upgrade.requirement.value) {
+          eligible.push(upgrade);
+        }
+      }
+    }
+  }
+  return eligible;
+}

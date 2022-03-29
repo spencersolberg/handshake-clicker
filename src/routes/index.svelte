@@ -2,14 +2,17 @@
   import { browser } from "$app/env";
   import { save } from "../stores/save.js";
   import { buildings } from "../lib/buildings";
-  import { format, getRate, dateString } from "../lib/functions.js";
+  import { upgrades } from "../lib/upgrades";
+  import { format, getRate, dateString, checkEligibility } from "../lib/functions.js";
   import TopBar from "../components/TopBar.svelte";
   import Coin from "../components/Coin.svelte";
   import Building from "../components/Building.svelte";
+  import Upgrade from "../components/Upgrade.svelte";
   import { Howl } from "howler";
   import { onMount } from "svelte";
   import { tlds } from "../lib/icann.js";
   import { settings } from "party-js";
+  import { fade, fly } from "svelte/transition";
 
   const sounds = {
     pop: new Howl({ src: "/pop.wav" }),
@@ -24,6 +27,8 @@
   let glitchedCount = 0;
   let lastBalance = 0;
   let lastUpdate = new Date();
+  let deletePrompt = false;
+  let availableUpgrades = [];
 
   if (browser && !localStorage.getItem("save")) {
     let newSave = {
@@ -54,6 +59,7 @@
     rate = getRate($save);
     $save.balance = Number($save.balance.toFixed(4));
     $save.stats.hnsAllTime = Number($save.stats.hnsAllTime.toFixed(4));
+    availableUpgrades = checkEligibility($save, upgrades);
   }
 
   const tenMilliseconds = () => {
@@ -67,11 +73,13 @@
   const load = () => {
     if (!browser) return;
     let string = localStorage.getItem("save");
+    console.log("loading save from local storage...");
     if (!string.includes("{")) {
       let oldSave = JSON.parse(atob(string));
       $save = {
         balance: Number(oldSave.balance),
         ownedBuildings: oldSave.ownedBuildings,
+        ownedUpgrades: [],
         settings: {
           audio: oldSave.audio,
           walletName: oldSave.walletName,
@@ -89,7 +97,11 @@
         lastSave: new Date(),
       };
     } else {
-      $save = JSON.parse(string);
+      let obj = JSON.parse(string);
+      if (!Object.keys(obj).includes("ownedUpgrades")) {
+        obj.ownedUpgrades = [];
+      }
+      $save = obj;
     }
   };
 
@@ -126,14 +138,8 @@
 
   const deleteSave = () => {
     if (!browser) return;
-    if (
-      window.confirm(
-        "Are you sure you want to delete your save? You will lose all of your progress!"
-      )
-    ) {
-      localStorage.removeItem("save");
-      location.reload();
-    }
+    localStorage.removeItem("save");
+    location.reload();
   };
 
   setInterval(tenMilliseconds, 10);
@@ -150,7 +156,7 @@
     lastBalance = $save.balance;
   }, 1000);
 
-  load();
+  let obj = load();
 
   let icann = false;
   let tld;
@@ -188,6 +194,48 @@
 {:else}
   <TopBar />
   <div class="flex flex-col mx-auto max-w-sm p-2 bg-white">
+    {#if deletePrompt}
+      <div class="overlay bg-black" transition:fade={{ duration: 500 }} />
+      <div
+        class="flex flex-col mx-auto max-w-sm pr-4 z-50 fixed top-1/4 w-full "
+      >
+        <div
+          class="rounded-md border-2 border-black bg-red-400"
+          transition:fly={{ y: 200, duration: 500 }}
+        >
+          <div class="flex px-2 pt-2">
+            <h1 class="text-5xl pr-2">🗑</h1>
+            <div class="flex flex-col">
+              <h1 class="text-xl font-medium">Delete Save</h1>
+              <div class="flex justify-between items-baseline">
+                <h1 class="pr-2">You will lose all of your progress!</h1>
+              </div>
+            </div>
+          </div>
+
+          <p class="px-2 py-2 text-md">
+            Are you sure you want to delete your save? This will reset all of
+            your progress!
+          </p>
+          <div class="flex px-2 pb-2 justify-between select-none">
+            <div
+              on:click={() => {
+                deletePrompt = false;
+              }}
+              class="bg-green-400 w-1/2 mr-1 p-2 border-2 border-black flex flex-col justify-center align-middle rounded-md transition-transform transform-gpu motion-safe:hover:scale-105 motion-safe:active:scale-95 cursor-pointer"
+            >
+              <h1 class="font-medium text-lg text-center">Cancel</h1>
+            </div>
+            <div
+              on:click={deleteSave}
+              class="bg-red-600 w-1/2 ml-1 p-2 border-2 border-black rounded-md transition-transform transform-gpu motion-safe:hover:scale-105 motion-safe:active:scale-95 cursor-pointer"
+            >
+              <h1 class="font-medium text-lg text-center">Delete Save</h1>
+            </div>
+          </div>
+        </div>
+      </div>
+    {/if}
     <h1 class="text-5xl text-center font-black mx-auto mt-8">
       <span
         spellcheck="false"
@@ -215,6 +263,7 @@
         Refresh...
       </h2>
     {/if}
+
     <Coin
       on:mousedown={() =>
         $save.settings.audio &&
@@ -252,7 +301,24 @@
         />
       {/if}
     {/each}
-    <!-- <h2 class="text-3xl mb-2">Upgrades</h2> -->
+    <h2 class="text-3xl mb-2 font-bold">Upgrades</h2>
+    {#if availableUpgrades.length >= 1}
+    <div class="grid grid-cols-6 max-w-sm mx-auto">
+      {#each availableUpgrades.sort((a, b) => a.price - b.price) as upgrade}
+        <Upgrade
+          {upgrade}
+          on:purchase={() =>
+            $save.settings.audio &&
+            sounds.chaching
+              // @ts-ignore
+              .play()}
+        />
+      {/each}
+    </div>
+    {:else}
+    <p class="mb-2 text-lg">No upgrades available for purchase.</p>
+    <p class="mb-2 text-lg">Check back later!</p>
+    {/if}
     <h1 class="text-5xl font-black mb-4">Stats</h1>
     <ul class="mb-2">
       <li class="text-lg">
@@ -263,6 +329,11 @@
       <li class="text-lg">
         Coin Clicks: <span class="font-mono"
           >{format($save.stats.timesClicked, 0)}</span
+        >
+      </li>
+      <li class="text-lg">
+        HNS Clicked: <span class="font-mono"
+          >{format($save.stats.hnsClicked, 0)} HNS</span
         >
       </li>
       <li class="text-lg">
@@ -341,7 +412,9 @@
       Download Save
     </p>
     <p
-      on:click={deleteSave}
+      on:click={() => {
+        deletePrompt = true;
+      }}
       class="text-xl mb-2 cursor-pointer hover:text-red-600 text-red-400 hover:underline"
     >
       Delete Save
@@ -359,3 +432,15 @@
     >
   </div>
 {/if}
+
+<style>
+  .overlay {
+    opacity: 0.8;
+    position: fixed;
+    width: 100%;
+    height: 100%;
+    top: 0px;
+    left: 0px;
+    z-index: 50;
+  }
+</style>

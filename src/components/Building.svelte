@@ -10,6 +10,13 @@
   export let building;
 
   let buildingDiv;
+  let affordable;
+  let sellable;
+
+  $: {
+    affordable = $save.balance >= (building.basePrice * Math.pow(1.15, $save.ownedBuildings[building.id] ?? 0));
+    sellable = $save.ownedBuildings[building.id] > 0;
+  }
 
   const buy = (building) => {
     let price =
@@ -69,13 +76,13 @@
   </div>
 
   <p class="px-2 py-2 text-sm">{building.desc}</p>
-  <div class="flex px-2 pb-2 justify-between">
+  <div class="flex px-2 pb-2 justify-between select-none">
     <div
       on:click={() => {
         buy(building);
       }}
       id="building-{building.id}"
-      class="bg-green-400 w-1/2 mr-1 p-2 border-2 border-black rounded-md transition-transform transform-gpu motion-safe:hover:scale-105 motion-safe:active:scale-95 cursor-pointer"
+      class="bg-green-400 w-1/2 mr-1 p-2 border-2 border-black rounded-md {affordable ? "transition-transform transform-gpu motion-safe:hover:scale-105 motion-safe:active:scale-95 cursor-pointer" : "opacity-50 cursor-not-allowed"}"
     >
       <h1 class="font-medium text-lg">Buy</h1>
       <h1 class="font-mono">
@@ -90,7 +97,7 @@
       on:click={() => {
         sell(building);
       }}
-      class="bg-red-400 w-1/2 ml-1 p-2 border-2 border-black rounded-md transition-transform transform-gpu motion-safe:hover:scale-105 motion-safe:active:scale-95 cursor-pointer"
+      class="bg-red-400 w-1/2 ml-1 p-2 border-2 border-black rounded-md {sellable ? "transition-transform transform-gpu motion-safe:hover:scale-105 motion-safe:active:scale-95 cursor-pointer" : "opacity-50 cursor-not-allowed"}"
     >
       <h1 class="font-medium text-lg">Sell</h1>
       <h1 class="font-mono">
