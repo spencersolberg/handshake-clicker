@@ -20,9 +20,9 @@
 
   const spawnText = (e, click) => {
     let t = document.createElement("p");
-    t.style.left = e.clientX + "px";
-    t.style.top = e.clientY - 20 + "px";
-    t.className = "font-mono text-3xl text-green-400 fixed z-50";
+    t.style.left = e.pageX + "px";
+    t.style.top = e.pageY - 20 + "px";
+    t.className = "font-mono text-3xl text-green-400 absolute z-40";
     t.innerText = "+" + formatSmall(click);
 
     div.appendChild(t);
