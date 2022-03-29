@@ -9,7 +9,7 @@
   };
 </script>
 
-<div on:click={click} on:mousedown>
+<div class="select-none" on:click={click} on:mousedown>
   <img
     src="hns.svg"
     id="coin"
