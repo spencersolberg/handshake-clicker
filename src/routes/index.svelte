@@ -159,13 +159,13 @@
   let obj = load();
 
   let icann = false;
-  let tld;
-  if (browser) {
-    let subs = location.host.split(".");
-    tld = subs[subs.length - 1];
-    console.log(tld);
-    icann = tlds.includes(tld.toUpperCase());
-  }
+  // let tld;
+  // if (browser) {
+    // let subs = location.host.split(".");
+    // tld = subs[subs.length - 1];
+    // console.log(tld);
+    // icann = tlds.includes(tld.toUpperCase());
+  // }
 </script>
 
 <svelte:head>
